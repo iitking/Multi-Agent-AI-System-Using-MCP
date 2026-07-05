@@ -1,0 +1,93 @@
+{
+  "name": "Enterprise Sales Action Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sales-action",
+        "options": {}
+      },
+      "id": "1",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.action.type }}",
+              "operation": "equal",
+              "value2": "email"
+            }
+          ]
+        }
+      },
+      "id": "2",
+      "name": "Check Action Type",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "reports@company.com",
+        "toEmail": "={{ $json.action.recipient }}",
+        "subject": "={{ $json.action.subject }} [Approved by {{ $json.approved_by }}]",
+        "text": "={{ $json.report_markdown }}",
+        "options": {}
+      },
+      "id": "3",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "channel": "#sales-intelligence",
+        "text": "Executive Sales Analysis generated for run {{ $json.run_id }} and approved by {{ $json.approved_by }}. Full report attached."
+      },
+      "id": "4",
+      "name": "Notify Slack Channel",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [680, 420]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check Action Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Action Type": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Slack Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {}
+}

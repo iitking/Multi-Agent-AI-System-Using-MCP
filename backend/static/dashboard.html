@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enterprise Multi-Agent AI System Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#f0f9ff', 500: '#0284c7', 600: '#0369a1', 700: '#075985' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #020617; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-950 text-slate-100">
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="h-9 w-9 rounded-lg bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-sky-400 font-bold text-lg">
+          AI
+        </div>
+        <div>
+          <h1 class="text-base font-semibold text-white tracking-tight leading-tight">Enterprise Multi-Agent Platform</h1>
+          <p class="text-xs text-slate-400">Model Context Protocol (MCP) · LangGraph · n8n</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-2 text-xs">
+          <span id="health-dot" class="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></span>
+          <span id="health-text" class="text-slate-300">Online</span>
+        </div>
+        <div class="flex items-center space-x-2 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1">
+          <span class="text-xs text-slate-400">Role Key:</span>
+          <select id="api-key-select" class="bg-transparent text-xs text-sky-400 font-mono focus:outline-none cursor-pointer">
+            <option value="dev-admin-key" class="bg-slate-900 text-white" selected>dev-admin-key (Admin)</option>
+            <option value="dev-analyst-key" class="bg-slate-900 text-white">dev-analyst-key (Analyst)</option>
+            <option value="dev-viewer-key" class="bg-slate-900 text-white">dev-viewer-key (Viewer)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 w-full flex-1 flex flex-col">
+    <!-- Metrics Bar -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
+        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Task Completion Rate</p>
+        <p id="metric-completion" class="text-2xl font-bold mt-1 text-emerald-400">100.0%</p>
+        <p id="metric-runs-sub" class="text-xs text-slate-500 mt-1">tracked workflow runs</p>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
+        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">MCP Tool Calls</p>
+        <p id="metric-tools" class="text-2xl font-bold mt-1 text-sky-400">--</p>
+        <p id="metric-tools-sub" class="text-xs text-slate-500 mt-1">100.0% success rate</p>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
+        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Average Latency</p>
+        <p id="metric-latency" class="text-2xl font-bold mt-1 text-indigo-400">--s</p>
+        <p class="text-xs text-slate-500 mt-1">per multi-agent workflow</p>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
+        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Model Cost</p>
+        <p id="metric-cost" class="text-2xl font-bold mt-1 text-amber-400">$0.0000</p>
+        <p class="text-xs text-slate-500 mt-1">tracked token spend</p>
+      </div>
+    </div>
+
+    <!-- Query Input Form -->
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5 mb-6 shadow-sm">
+      <form id="run-form" class="space-y-3">
+        <div class="flex items-center justify-between">
+          <label class="text-xs font-semibold text-slate-300">Ask a Business Analysis Question</label>
+          <span class="text-[11px] text-slate-500">Orchestrates Planner · Data Analyst · Researcher · Insight · Reviewer · Report</span>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <input
+            id="prompt-input"
+            type="text"
+            placeholder="e.g. Analyze our sales data, identify why revenue dropped, and find top-performing products..."
+            class="flex-1 bg-slate-950 border border-slate-700/80 rounded-lg px-4 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500 transition"
+            required
+          />
+          <button
+            id="submit-btn"
+            type="submit"
+            class="px-5 py-2.5 bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold text-xs rounded-lg transition flex items-center justify-center space-x-1.5 shadow-sm"
+          >
+            <span>Submit Question</span>
+          </button>
+        </div>
+        <div class="flex flex-wrap items-center gap-1.5 pt-1">
+          <span class="text-[11px] text-slate-500 mr-1">Quick examples:</span>
+          <button type="button" class="quick-btn text-[11px] bg-slate-800/80 hover:bg-slate-800 text-slate-300 px-2.5 py-1 rounded-md border border-slate-700/50 transition">
+            Analyze our sales data, identify why revenue dropped, and find top-performing products.
+          </button>
+          <button type="button" class="quick-btn text-[11px] bg-slate-800/80 hover:bg-slate-800 text-slate-300 px-2.5 py-1 rounded-md border border-slate-700/50 transition">
+            Why did sales decline in Q3/Q4? Break down performance by region and explain what happened.
+          </button>
+          <button type="button" class="quick-btn text-[11px] bg-slate-800/80 hover:bg-slate-800 text-slate-300 px-2.5 py-1 rounded-md border border-slate-700/50 transition">
+            Analyze the revenue drop and email report to vp_sales@company.com for review.
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Workspace Columns -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 items-start">
+      <!-- Run History List -->
+      <div class="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
+        <div class="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+          <h3 class="text-sm font-semibold text-white">Execution History</h3>
+          <span id="runs-count" class="text-xs text-slate-400">0 runs</span>
+        </div>
+        <div id="runs-list" class="divide-y divide-slate-800/60 max-h-[580px] overflow-y-auto">
+          <div class="p-8 text-center text-xs text-slate-500">Loading history...</div>
+        </div>
+      </div>
+
+      <!-- Detail Panel -->
+      <div class="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm flex flex-col">
+        <div id="detail-header" class="p-5 border-b border-slate-800 bg-slate-900/50">
+          <div class="flex items-center justify-between">
+            <div>
+              <span id="detail-id" class="font-mono text-sm font-bold text-sky-400">No Run Selected</span>
+              <span id="detail-status" class="ml-2 text-xs px-2.5 py-0.5 rounded-full font-medium bg-slate-800 border border-slate-700 text-slate-400">idle</span>
+            </div>
+          </div>
+          <!-- Approval Banner -->
+          <div id="approval-banner" class="hidden mt-4 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <p class="text-xs font-bold text-amber-400 uppercase tracking-wide">Human Approval Required</p>
+              <p id="approval-text" class="text-xs text-amber-200/90 mt-0.5">Agent proposes external dispatch.</p>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button id="reject-btn" class="px-3 py-1.5 text-xs font-medium bg-rose-500/20 text-rose-300 border border-rose-500/40 rounded-lg hover:bg-rose-500/30 transition">Reject</button>
+              <button id="approve-btn" class="px-4 py-1.5 text-xs font-semibold bg-emerald-500 text-slate-950 rounded-lg hover:bg-emerald-400 transition shadow-sm">Approve & Dispatch</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detail Tabs -->
+        <div class="flex border-b border-slate-800 px-4 bg-slate-950/40 text-xs font-medium">
+          <button id="tab-report" class="tab-btn py-3 px-3 border-b-2 border-sky-500 text-sky-400">Executive Report</button>
+          <button id="tab-timeline" class="tab-btn py-3 px-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200">Timeline</button>
+          <button id="tab-checks" class="tab-btn py-3 px-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200">Verification Checks</button>
+        </div>
+
+        <div class="p-6 flex-1 overflow-y-auto max-h-[580px]">
+          <div id="content-report">
+            <pre id="report-text" class="whitespace-pre-wrap font-sans text-xs text-slate-200 leading-relaxed bg-slate-950/50 p-5 rounded-lg border border-slate-800">Select a run to view the generated sales intelligence report.</pre>
+          </div>
+          <div id="content-timeline" class="hidden space-y-3"></div>
+          <div id="content-checks" class="hidden space-y-3"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let currentRuns = [];
+    let selectedRunId = null;
+
+    function getApiKey() {
+      return document.getElementById('api-key-select').value;
+    }
+
+    async function fetchAPI(url, opts = {}) {
+      opts.headers = {
+        'Content-Type': 'application/json',
+        'X-API-Key': getApiKey(),
+        ...(opts.headers || {})
+      };
+      const res = await fetch(url, opts);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }));
+        throw new Error(err.detail || res.statusText);
+      }
+      return res.json();
+    }
+
+    async function loadMetrics() {
+      try {
+        const m = await fetchAPI('/api/metrics');
+        document.getElementById('metric-completion').innerText = m.completion_rate_pct + '%';
+        document.getElementById('metric-runs-sub').innerText = m.completed_runs + ' of ' + m.total_runs + ' runs';
+        document.getElementById('metric-tools').innerText = m.total_tool_calls.toLocaleString();
+        document.getElementById('metric-tools-sub').innerText = m.tool_success_rate_pct + '% success rate';
+        document.getElementById('metric-latency').innerText = (m.avg_duration_ms / 1000).toFixed(2) + 's';
+        document.getElementById('metric-cost').innerText = '$' + m.total_estimated_cost_usd.toFixed(4);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function loadRuns() {
+      try {
+        currentRuns = await fetchAPI('/api/runs?limit=50');
+        document.getElementById('runs-count').innerText = currentRuns.length + ' runs';
+        const listEl = document.getElementById('runs-list');
+        if (currentRuns.length === 0) {
+          listEl.innerHTML = '<div class="p-8 text-center text-xs text-slate-500">No runs yet. Submit a prompt!</div>';
+          return;
+        }
+        listEl.innerHTML = currentRuns.map(r => `
+          <button onclick="selectRun('${r.id}')" class="w-full text-left p-3.5 transition flex flex-col space-y-1.5 ${r.id === selectedRunId ? 'bg-sky-950/40 border-l-4 border-sky-500 pl-2.5' : 'hover:bg-slate-800/50'}">
+            <div class="flex items-center justify-between">
+              <span class="font-mono text-xs font-semibold text-slate-300">${r.id}</span>
+              <span class="text-[10px] font-medium px-2 py-0.5 rounded-full border ${r.status === 'completed' || r.status === 'report_ready' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-800 text-slate-400'}">${r.status}</span>
+            </div>
+            <p class="text-xs text-slate-300 line-clamp-2 leading-relaxed">${r.request}</p>
+            <div class="flex items-center justify-between text-[11px] text-slate-500">
+              <span>${new Date(r.created_at).toLocaleTimeString()}</span>
+              <span>${r.metrics ? (r.metrics.duration_ms / 1000).toFixed(1) + 's' : ''}</span>
+            </div>
+          </button>
+        `).join('');
+
+        if (!selectedRunId && currentRuns.length > 0) {
+          selectRun(currentRuns[0].id);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function selectRun(id) {
+      selectedRunId = id;
+      loadRuns(); // update highlight
+      try {
+        const r = await fetchAPI('/api/runs/' + id);
+        document.getElementById('detail-id').innerText = r.id;
+        document.getElementById('detail-status').innerText = r.status;
+        document.getElementById('report-text').innerText = r.report_markdown || 'No report generated yet.';
+
+        // External action
+        const banner = document.getElementById('approval-banner');
+        if (r.external_action && (r.external_action.status === 'pending_approval' || r.external_action.status === 'pending')) {
+          banner.classList.remove('hidden');
+          document.getElementById('approval-text').innerText = `External ${r.external_action.type} action to ${r.external_action.recipient || 'unspecified'}`;
+        } else {
+          banner.classList.add('hidden');
+        }
+
+        // Timeline
+        const tlEl = document.getElementById('content-timeline');
+        tlEl.innerHTML = (r.events || []).map(ev => `
+          <div class="flex items-start space-x-3 text-xs">
+            <span class="font-mono text-slate-500 text-[10px] min-w-[65px] pt-0.5">${new Date(ev.ts).toLocaleTimeString()}</span>
+            <span class="px-2 py-0.5 rounded font-mono text-[10px] font-semibold bg-slate-800 border border-slate-700 text-sky-400">${ev.agent}</span>
+            <p class="text-slate-300 flex-1">${ev.message}</p>
+          </div>
+        `).join('') || '<p class="text-xs text-slate-500">No events logged.</p>';
+
+        // Verification checks
+        const chkEl = document.getElementById('content-checks');
+        const checks = r.result?.review_result?.checks || [];
+        if (checks.length > 0) {
+          chkEl.innerHTML = `
+            <table class="w-full text-xs text-left border border-slate-800 rounded-lg overflow-hidden">
+              <thead class="bg-slate-950 text-slate-400">
+                <tr><th class="p-2.5">Check</th><th class="p-2.5">Outcome</th><th class="p-2.5">Detail</th></tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800 text-slate-300">
+                ${checks.map(c => `
+                  <tr>
+                    <td class="p-2.5 font-mono text-slate-400">${c.name}</td>
+                    <td class="p-2.5"><span class="font-bold ${c.passed ? 'text-emerald-400' : 'text-rose-400'}">${c.passed ? 'PASS' : 'FAIL'}</span></td>
+                    <td class="p-2.5">${c.detail}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `;
+        } else {
+          chkEl.innerHTML = '<p class="text-xs text-slate-500">No verification data.</p>';
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // Tabs
+    const tabs = ['report', 'timeline', 'checks'];
+    tabs.forEach(t => {
+      document.getElementById('tab-' + t).addEventListener('click', () => {
+        tabs.forEach(other => {
+          document.getElementById('tab-' + other).className = other === t ? 'tab-btn py-3 px-3 border-b-2 border-sky-500 text-sky-400' : 'tab-btn py-3 px-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200';
+          document.getElementById('content-' + other).classList.toggle('hidden', other !== t);
+        });
+      });
+    });
+
+    // Form submission
+    document.getElementById('run-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('prompt-input');
+      const val = input.value.trim();
+      if (!val) return;
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<span>Executing Multi-Agent Workflow...</span>';
+      try {
+        const res = await fetchAPI('/api/runs', {
+          method: 'POST',
+          body: JSON.stringify({ request: val, async_execution: false })
+        });
+        input.value = '';
+        await loadMetrics();
+        await loadRuns();
+        if (res.run_id) selectRun(res.run_id);
+      } catch (err) {
+        alert('Workflow submission error: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>Submit Question</span>';
+      }
+    });
+
+    // Quick prompts
+    document.querySelectorAll('.quick-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.getElementById('prompt-input').value = btn.innerText.trim();
+      });
+    });
+
+    // Approvals
+    document.getElementById('approve-btn').addEventListener('click', async () => {
+      if (!selectedRunId) return;
+      try {
+        await fetchAPI(`/api/runs/${selectedRunId}/approve`, {
+          method: 'POST',
+          body: JSON.stringify({ decision: 'approve', notes: 'Approved via Web Dashboard' })
+        });
+        selectRun(selectedRunId);
+        loadRuns();
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    document.getElementById('reject-btn').addEventListener('click', async () => {
+      if (!selectedRunId) return;
+      try {
+        await fetchAPI(`/api/runs/${selectedRunId}/approve`, {
+          method: 'POST',
+          body: JSON.stringify({ decision: 'reject', notes: 'Rejected via Web Dashboard' })
+        });
+        selectRun(selectedRunId);
+        loadRuns();
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    // Initial load & poll
+    loadMetrics();
+    loadRuns();
+    setInterval(() => { loadMetrics(); loadRuns(); }, 8000);
+  </script>
+</body>
+</html>
